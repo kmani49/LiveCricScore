@@ -17,6 +17,10 @@ struct Match: Identifiable, Codable {
     let bbbEnabled: Bool
     let hasSquad: Bool
     let seriesId: String?  // This needs explicit coding key
+    var currentBatsmen: [String]?
+    var currentBowlers: [String]?
+    var overs: Double?
+
     
     // Add explicit CodingKeys with series_id mapping
     enum CodingKeys: String, CodingKey {

@@ -191,25 +191,25 @@ struct MatchRowView: View {
 }
 
 // MARK: - Live Indicator Component
-struct LiveIndicator: View {
-    @State private var isBlinking = false
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(Color.red)
-                .frame(width: 8, height: 8)
-                .opacity(isBlinking ? 0.4 : 1)
-                .animation(.easeInOut(duration: 1).repeatForever(), value: isBlinking)
-            
-            Text("LIVE")
-                .font(.system(size: 10, weight: .black))
-                .foregroundColor(.red)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Color.red.opacity(0.1))
-        .cornerRadius(4)
-        .onAppear { isBlinking = true }
-    }
-}
+//struct LiveIndicator: View {
+//    @State private var isBlinking = false
+//    
+//    var body: some View {
+//        HStack(spacing: 4) {
+//            Circle()
+//                .fill(Color.red)
+//                .frame(width: 8, height: 8)
+//                .opacity(isBlinking ? 0.4 : 1)
+//                .animation(.easeInOut(duration: 1).repeatForever(), value: isBlinking)
+//            
+//            Text("LIVE")
+//                .font(.system(size: 10, weight: .black))
+//                .foregroundColor(.red)
+//        }
+//        .padding(.horizontal, 8)
+//        .padding(.vertical, 4)
+//        .background(Color.red.opacity(0.1))
+//        .cornerRadius(4)
+//        .onAppear { isBlinking = true }
+//    }
+//}
