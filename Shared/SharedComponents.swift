@@ -2,67 +2,68 @@ import SwiftUI
 
 // MARK: - Common Components
 struct TeamScoreCard: View {
-    let team: String
+    let teamName: String
     let score: String
     let overs: String
-    let isBatting: Bool
-    
+
     var body: some View {
-        VStack(spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(team)
-                    .font(.system(size: 16, weight: .bold))
-                
-                if isBatting {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 6))
-                        .foregroundColor(.green)
-                }
-            }
-            
-            Text(score)
-                .font(.system(size: 22, weight: .heavy))
-            
-            Text("\(overs) ov")
-                .font(.system(size: 13, weight: .medium))
+        VStack(alignment: .leading, spacing: 2) {
+            Text(teamName)
+                .font(.subheadline)
                 .foregroundColor(.secondary)
+            HStack(spacing: 2) {
+                Text(score)
+                    .font(.headline.bold())
+                Text("(\(overs))")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
-        .frame(width: 120)
     }
 }
+
 
 struct LiveStatusIndicator: View {
     let isLive: Bool
-    
+
     var body: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(isLive ? Color.red : Color.gray)
-                .frame(width: 6, height: 6)
-            
-            Text(isLive ? "LIVE" : "ENDED")
-                .font(.system(size: 12, weight: .bold))
-        }
-        .foregroundColor(isLive ? .red : .gray)
-        .padding(6)
-        .background(Capsule().fill(isLive ? Color.red.opacity(0.2) : Color.gray.opacity(0.2)))
+        Circle()
+            .fill(isLive ? Color.green : Color.red)
+            .frame(width: 6, height: 6)
     }
 }
+
+//struct LiveStatusIndicator: View {
+//    let isLive: Bool
+//    
+//    var body: some View {
+//        HStack(spacing: 4) {
+//            Circle()
+//                .fill(isLive ? Color.red : Color.gray)
+//                .frame(width: 6, height: 6)
+//            
+//            Text(isLive ? "LIVE" : "ENDED")
+//                .font(.system(size: 12, weight: .bold))
+//        }
+//        .foregroundColor(isLive ? .red : .gray)
+//        .padding(6)
+//        .background(Capsule().fill(isLive ? Color.red.opacity(0.2) : Color.gray.opacity(0.2)))
+//    }
+//}
 
 struct MatchProgressView: View {
     let currentOver: Double
-    let totalOvers: Double
+    let totalOvers: Int
     let recentBalls: [String]
-    
+
     var body: some View {
-        VStack(spacing: 8) {
-            ProgressBar(current: currentOver, total: totalOvers)
-            RecentDeliveriesView(balls: recentBalls)
+        VStack(alignment: .leading) {
+            Text("Recent Balls: \(recentBalls.joined(separator: ", "))")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
-        .padding(.horizontal, 8)
     }
 }
-
 struct ProgressBar: View {
     let current: Double
     let total: Double

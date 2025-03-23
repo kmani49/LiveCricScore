@@ -1,6 +1,7 @@
 import SwiftUI
 import ActivityKit
 
+@MainActor
 class LiveActivityManager: ObservableObject {
     @Published var isLiveActivityEnabled: Bool {
         didSet {
@@ -61,22 +62,24 @@ class LiveActivityManager: ObservableObject {
         return match.score?.first?.o ?? 0.0
     }
     
-    func stopLiveActivity() {
-        Task {
-            await currentActivity?.end(nil, dismissalPolicy: .immediate)
-            currentActivity = nil
-        }
+    func stopLiveActivity() async {
+            if let activity = currentActivity {
+                await activity.end(nil, dismissalPolicy: .immediate)
+                currentActivity = nil
+            }
     }
     
     func checkExistingLiveActivity(for matchName: String) {
-        Task {
-            for activity in Activity<CricketActivityAttributes>.activities {
-                if activity.attributes.matchName == matchName {
-                    currentActivity = activity
-                    isLiveActivityEnabled = true
-                    break
+            Task {
+                for activity in Activity<CricketActivityAttributes>.activities {
+                    if activity.attributes.matchName == matchName {
+                        await MainActor.run {
+                            currentActivity = activity
+                            isLiveActivityEnabled = true
+                        }
+                        break
+                    }
                 }
             }
         }
-    }
 }

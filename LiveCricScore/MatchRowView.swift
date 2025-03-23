@@ -2,68 +2,94 @@ import SwiftUI
 
 struct MatchRowView: View {
     let match: Match
-    private let accentGradient = LinearGradient(
-        gradient: Gradient(colors: [Color(.systemTeal), Color(.systemIndigo)]),
-        startPoint: .leading,
-        endPoint: .trailing
-    )
     
     var body: some View {
-            VStack(alignment: .leading, spacing: 12) {
-                // Header Section
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(match.matchType.uppercased())
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(accentGradient))
-                        
-                        Text(getTeamNames())
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                            .padding(.top, 2)
-                    }
-                    
-                    Spacer()
-                    
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                            .font(.caption2)
-                        Text(formattedDate(match.dateTimeGMT))
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            // Header with match type and date
+            HStack {
+                Text(match.matchType.uppercased())
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Color.blue))
                 
-                // Teams & Scores
-                VStack(spacing: 12) {
-                    teamScoreView(teamIndex: 0)
-                    Divider().background(Color.gray.opacity(0.2))
-                    teamScoreView(teamIndex: 1)
-                }
-                .padding(.vertical, 8)
+                Spacer()
                 
-                // Status & Venue
-                HStack {
-                    statusIndicator
-                    Spacer()
-                    venueLabel
+                Text(formattedDate(match.dateTimeGMT))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+            
+            // Teams and scores
+            VStack(spacing: 8) {
+                ForEach(0..<2) { index in
+                    if index < match.teams.count {
+                        HStack {
+                            TeamBadgeView(
+                                team: match.teams[index],
+                                shortName: match.teamInfo?[index].shortname ?? "",
+                                imgURL: match.teamInfo?[index].img
+                            )
+                            
+                            Spacer()
+                            
+                            if let score = getScore(forTeam: index) {
+                                Text(score)
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(index == 0 ? .primary : .secondary)
+                            }
+                            
+                            if index == 0 && match.status.contains("Live") {
+                                Image(systemName: "seat")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
                 }
             }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color(.systemGray5), lineWidth: 1)
-            )
+            
+            // Progress and status
+            HStack {
+                if match.status == "Live" {
+                    Text("Play in progress")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.green)
+                }
+                
+                Spacer()
+                
+                Text("Cricket")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.top, 4)
+            
+            Divider()
+            
+            // Series info and venue
+            HStack {
+                Text(match.venue)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                if let score = match.score?.first {
+                    Text("\(score.r)/\(score.w)")
+                        .font(.system(size: 14, weight: .bold))
+                }
+            }
         }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color(.systemGray4), lineWidth: 1)
+        )
+    }
         
     private func teamScoreView(teamIndex: Int) -> some View {
         HStack(spacing: 12) {
@@ -97,11 +123,17 @@ struct MatchRowView: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                 
-                if getScore(forTeam: teamIndex) != "No score" {
-                    Text(getScore(forTeam: teamIndex))
-                        .font(.callout)
-                        .fontWeight(.semibold)
-                        .foregroundColor(Color(.systemGreen))
+                if let score = getScore(forTeam: teamIndex) {
+                    if score != "No score" {
+                        Text(score)
+                            .font(.callout)
+                            .fontWeight(.semibold)
+                            .foregroundColor(Color(.systemGreen))
+                    } else {
+                        Text("Yet to Bat")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
                 } else {
                     Text("Yet to Bat")
                         .font(.footnote)
@@ -159,23 +191,17 @@ struct MatchRowView: View {
             return "\(team1) vs \(team2)"
         }
         
-        private func getScore(forTeam index: Int) -> String {
-            guard let score = match.score, index < score.count else {
-                return "No score"
-            }
-            return "\(score[index].r)/\(score[index].w) (\(String(format: "%.1f", score[index].o)))"
+    private func getScore(forTeam index: Int) -> String? {
+            guard let scores = match.score, index < scores.count else { return nil }
+            return "\(scores[index].r)/\(scores[index].w)"
         }
         
-        private func formattedDate(_ dateString: String) -> String {
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-            dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-            
-            if let date = dateFormatter.date(from: dateString) {
-                dateFormatter.dateFormat = "MMM d, h:mm a"
-                return dateFormatter.string(from: date)
-            }
-            return dateString
+    private func formattedDate(_ dateString: String) -> String {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+            guard let date = formatter.date(from: dateString) else { return "" }
+            formatter.dateFormat = "d MMM"
+            return formatter.string(from: date)
         }
         
         private func getFlag(forTeam index: Int) -> String {
@@ -191,25 +217,56 @@ struct MatchRowView: View {
 }
 
 // MARK: - Live Indicator Component
-//struct LiveIndicator: View {
-//    @State private var isBlinking = false
-//    
-//    var body: some View {
-//        HStack(spacing: 4) {
-//            Circle()
-//                .fill(Color.red)
-//                .frame(width: 8, height: 8)
-//                .opacity(isBlinking ? 0.4 : 1)
-//                .animation(.easeInOut(duration: 1).repeatForever(), value: isBlinking)
-//            
-//            Text("LIVE")
-//                .font(.system(size: 10, weight: .black))
-//                .foregroundColor(.red)
-//        }
-//        .padding(.horizontal, 8)
-//        .padding(.vertical, 4)
-//        .background(Color.red.opacity(0.1))
-//        .cornerRadius(4)
-//        .onAppear { isBlinking = true }
-//    }
-//}
+struct LiveIndicator: View {
+    @State private var isBlinking = false
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(Color.red)
+                .frame(width: 8, height: 8)
+                .opacity(isBlinking ? 0.4 : 1)
+                .animation(.easeInOut(duration: 1).repeatForever(), value: isBlinking)
+            
+            Text("LIVE")
+                .font(.system(size: 10, weight: .black))
+                .foregroundColor(.red)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.red.opacity(0.1))
+        .cornerRadius(4)
+        .onAppear { isBlinking = true }
+    }
+}
+
+struct TeamBadgeView: View {
+    let team: String
+    let shortName: String
+    let imgURL: String?
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            AsyncImage(url: URL(string: imgURL ?? "")) { phase in
+                if let image = phase.image {
+                    image.resizable()
+                } else if phase.error != nil {
+                    Image(systemName: "flag")
+                        .foregroundColor(.secondary)
+                } else {
+                    ProgressView()
+                }
+            }
+            .frame(width: 24, height: 24)
+            .cornerRadius(4)
+            
+            VStack(alignment: .leading) {
+                Text(shortName.isEmpty ? team : shortName)
+                    .font(.system(size: 14, weight: .semibold))
+                Text(team)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+}

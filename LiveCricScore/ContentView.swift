@@ -4,7 +4,6 @@ import Combine
 import ActivityKit
 
 
-
 @propertyWrapper
 struct UserDefault<T> {
     let key: String
@@ -24,6 +23,85 @@ struct UserDefault<T> {
         }
     }
 }
+
+struct ContentView: View {
+    @StateObject private var liveActivityManager = LiveActivityManager()
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                // IPL 2025 Card
+                NavigationLink(destination: IPLMatchesView()) {
+                    SeriesCardView(
+                        title: "IPL 2025",
+                        subtitle: "Indian Premier League",
+                        icon: "trophy.fill"
+                    )
+                }
+                
+                // Ongoing Matches Card
+                NavigationLink(destination: CurrentMatchesView()) {
+                    SeriesCardView(
+                        title: "Ongoing Matches",
+                        subtitle: "Live & Upcoming Games",
+                        icon: "livephoto.play"
+                    )
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Cricket Hub")
+            .navigationBarTitleDisplayMode(.large)
+        }
+        .accentColor(.indigo)
+        .environmentObject(liveActivityManager)
+    }
+}
+
+// Placeholder view for IPL matches (you'll need to create proper implementation)
+struct IPLMatchesView: View {
+    var body: some View {
+        Text("IPL 2025 Matches")
+            .navigationTitle("IPL 2025")
+    }
+}
+
+struct SeriesCardView: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Image(systemName: icon)
+                    .font(.title)
+                    .foregroundColor(.indigo)
+                
+                Text(title)
+                    .font(.headline)
+                
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .contentShape(Rectangle())
+    }
+}
+
+
 
 struct StatBadge: View {
     let title: String
@@ -102,26 +180,6 @@ struct CommentaryView: View {
     }
 }
 
-struct ContentView: View {
-    @StateObject private var liveActivityManager = LiveActivityManager()
-
-    var body: some View {
-        TabView {
-            CurrentMatchesView()
-                .tabItem {
-                    Label("Live", systemImage: "livephoto.play")
-                        .foregroundColor(.primary)
-                }
-            
-            Text("Other Tab")
-                .tabItem {
-                    Label("More", systemImage: "ellipsis.circle")
-                }
-        }
-        .accentColor(.indigo)
-        .environmentObject(liveActivityManager)
-    }
-}
 
 struct MatchInfoView: View {
     let match: Match

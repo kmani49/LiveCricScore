@@ -41,26 +41,28 @@ struct MatchDetailView: View {
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // Hide default tab view dots
             // Replace the Button with a Toggle
-            Toggle("Live Activity", isOn: $liveActivityManager.isLiveActivityEnabled)
-                            .padding()
-                            .onChange(of: liveActivityManager.isLiveActivityEnabled) { oldValue,newValue in
-                                if newValue {
-                                    liveActivityManager.startLiveActivity(for: match)
-                                } else {
-                                    liveActivityManager.stopLiveActivity()
-                                }
-                            }
-                        
-                        if let error = errorMessage {
-                            Text(error)
-                                .foregroundColor(.red)
-                                .padding()
-                        }
-                    }
-                    .onAppear {
-                        liveActivityManager.checkExistingLiveActivity(for: match.name)
-                    }
-                }
-            }
+                       Toggle("Live Activity", isOn: $liveActivityManager.isLiveActivityEnabled)
+                           .padding()
+                           .onChange(of: liveActivityManager.isLiveActivityEnabled) { oldValue, newValue in
+                               if newValue {
+                                   liveActivityManager.startLiveActivity(for: match)
+                               } else {
+                                   Task {
+                                       await liveActivityManager.stopLiveActivity()
+                                   }
+                               }
+                           }
+                       
+                       if let error = errorMessage {
+                           Text(error)
+                               .foregroundColor(.red)
+                               .padding()
+                       }
+                   }
+                   .onAppear {
+                       liveActivityManager.checkExistingLiveActivity(for: match.name)
+                   }
+               }
+           }
 
 // End of file. No additional code.
