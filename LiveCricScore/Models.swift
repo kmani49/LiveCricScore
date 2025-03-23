@@ -16,7 +16,6 @@ struct Match: Identifiable, Codable {
     let fantasyEnabled: Bool
     let bbbEnabled: Bool
     let hasSquad: Bool
-    let seriesId: String?  // This needs explicit coding key
     var currentBatsmen: [String]?
     var currentBowlers: [String]?
     var overs: Double?
@@ -34,7 +33,6 @@ struct Match: Identifiable, Codable {
         case fantasyEnabled = "fantasyEnabled"
         case bbbEnabled = "bbbEnabled"
         case hasSquad = "hasSquad"
-        case seriesId = "series_id"  // Add this line
     }
 }
 
@@ -68,7 +66,55 @@ struct APIInfo: Codable {
     let hitsLimit: Int
     let credits: Int
     let server: Int
-    let offsetRows: Int
-    let totalRows: Int
-    let cache: Int  // Change from Bool to Int
+    let queryTime: Double  // Changed from offsetRows
+    let s: Int             // Changed from totalRows
+    let cache: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case hitsToday, hitsUsed, hitsLimit, credits
+        case server, queryTime, s, cache
+    }
+}
+
+struct IPLSeriesResponse: Codable {
+    let apikey: String
+    let data: IPLSeriesData
+    let status: String
+    let info: APIInfo  // This matches the root-level "info" in the JSON
+}
+
+struct IPLSeriesData: Codable {
+    let info: SeriesInfo
+    let matchList: [Match]
+}
+
+struct SeriesInfo: Codable {
+    let id: String
+    let name: String
+    let startdate: String
+    let enddate: String
+    let odi: Int
+    let t20: Int
+    let test: Int
+    let squads: Int
+    let matches: Int
+    
+    // Add computed properties for formatted dates
+    var formattedStartDate: String {
+        formatDateString(startdate)
+    }
+    
+    var formattedEndDate: String {
+        formatDateString(enddate)
+    }
+    
+    private func formatDateString(_ dateString: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let date = formatter.date(from: dateString) else {
+            return dateString
+        }
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter.string(from: date)
+    }
 }

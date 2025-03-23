@@ -8,12 +8,12 @@ import ActivityKit
 struct UserDefault<T> {
     let key: String
     let defaultValue: T
-
+    
     init(_ key: String, defaultValue: T) {
         self.key = key
         self.defaultValue = defaultValue
     }
-
+    
     var wrappedValue: T {
         get {
             return UserDefaults.standard.object(forKey: key) as? T ?? defaultValue
@@ -35,7 +35,7 @@ struct ContentView: View {
                     SeriesCardView(
                         title: "IPL 2025",
                         subtitle: "Indian Premier League",
-                        icon: "trophy.fill"
+                        icon: "trophony.fill"
                     )
                 }
                 
@@ -59,13 +59,328 @@ struct ContentView: View {
     }
 }
 
-// Placeholder view for IPL matches (you'll need to create proper implementation)
 struct IPLMatchesView: View {
+    @StateObject private var viewModel = IPLMatchesViewModel()
+    @State private var selectedMatch: Match?
+    
     var body: some View {
-        Text("IPL 2025 Matches")
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Today's Matches Section
+                    if !viewModel.todaysMatches.isEmpty {
+                        SectionHeader(title: "Today's Matches")
+                        ForEach(viewModel.todaysMatches) { match in
+                            MatchCard(match: match, showCountdown: true)
+                        }
+                    }
+                    
+                    // Upcoming Matches Section
+                    if !viewModel.upcomingMatches.isEmpty {
+                        SectionHeader(title: "Upcoming Matches")
+                        ForEach(viewModel.upcomingMatches) { match in
+                            MatchCard(match: match, showCountdown: false)
+                        }
+                    }
+                }
+                .padding()
+            }
             .navigationTitle("IPL 2025")
+            .background(Color(.systemGroupedBackground))
+            .overlay(loadingView)
+            .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(viewModel.errorMessage ?? "")
+            }
+        }
+        .navigationViewStyle(.stack)
+        .refreshable {
+            viewModel.fetchIPLMatches()
+        }
+    }
+    private var loadingView: some View {
+        Group {
+            if viewModel.isLoading {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(.systemBackground).opacity(0.9))
+            }
+        }
+    }
+}// MARK: - Components
+struct SectionHeader: View {
+    let title: String
+    
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+        .padding(.vertical, 8)
     }
 }
+
+// MARK: - Missing Components Implementation
+struct CountdownView: View {
+    @Binding var timeRemaining: String
+    let dateString: String
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Text("Starts in")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Text(timeRemaining)
+                .font(.system(.body, design: .monospaced))
+                .foregroundColor(.primary)
+        }
+        .onAppear {
+            updateTimeRemaining()
+            startTimer()
+        }
+    }
+    
+    private func startTimer() {
+        Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+            .sink { _ in
+                updateTimeRemaining()
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func updateTimeRemaining() {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        formatter.timeZone = TimeZone(abbreviation: "GMT")
+        
+        guard let matchDate = formatter.date(from: dateString) else {
+            timeRemaining = "-"
+            return
+        }
+        
+        let remaining = matchDate.timeIntervalSince(Date())
+        guard remaining > 0 else {
+            timeRemaining = "LIVE"
+            return
+        }
+        
+        let hours = Int(remaining) / 3600
+        let minutes = (Int(remaining) % 3600) / 60
+        let seconds = (Int(remaining) % 3600) % 60
+        timeRemaining = String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+    }
+    
+    @State private var cancellables = Set<AnyCancellable>()
+}
+
+struct MatchTimingView: View {
+    let date: String
+    let timeGMT: String
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(formattedDate)
+                .font(.subheadline)
+            
+            Text(formattedTime)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let date = formatter.date(from: date) else { return self.date }
+        formatter.dateStyle = .medium
+        return formatter.string(from: date)
+    }
+    
+    private var formattedTime: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        formatter.timeZone = TimeZone(abbreviation: "GMT")
+        guard let date = formatter.date(from: timeGMT) else { return "N/A" }
+        
+        formatter.dateFormat = "h:mm a"
+        formatter.timeZone = .current
+        return formatter.string(from: date)
+    }
+}
+
+struct MatchCard: View {
+    let match: Match
+    let showCountdown: Bool
+    @State private var timeRemaining: String = ""
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            headerSection
+            teamsSection
+            matchStatusSection
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(16)
+        .onAppear {
+            if showCountdown {
+                startTimer()
+            }
+        }
+    }
+    
+    private var headerSection: some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text(match.venue)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Text(match.name)
+                    .font(.headline)
+                    .lineLimit(2)
+            }
+            
+            Spacer()
+            
+            MatchStatusIndicator(status: match.status)
+        }
+    }
+    
+    private var teamsSection: some View {
+        HStack(spacing: 16) {
+            TeamView(name: match.teams.first ?? "Team A")
+            VsView()
+            TeamView(name: match.teams.last ?? "Team B")
+        }
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+    }
+    
+    private var matchStatusSection: some View {
+        Group {
+            if match.status == "Match started" {
+                ScoreView(score: match.score?.first)
+            } else if showCountdown {
+                CountdownView(timeRemaining: $timeRemaining, dateString: match.dateTimeGMT)
+            } else {
+                MatchTimingView(date: match.date, timeGMT: match.dateTimeGMT)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    private func startTimer() {
+        Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+            .sink { _ in
+                updateTimeRemaining()
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func updateTimeRemaining() {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        formatter.timeZone = TimeZone(abbreviation: "GMT")
+        
+        guard let matchDate = formatter.date(from: match.dateTimeGMT) else {
+            timeRemaining = "-"
+            return
+        }
+        
+        let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+        timer
+            .map { _ in
+                let remaining = matchDate.timeIntervalSince(Date())
+                guard remaining > 0 else { return "LIVE" }
+                
+                let hours = Int(remaining) / 3600
+                let minutes = (Int(remaining) % 3600) / 60
+                let seconds = (Int(remaining) % 3600) % 60
+                return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+            }
+            .assign(to: \.timeRemaining, on: self)
+            .store(in: &cancellables)
+    }
+    @State private var cancellables = Set<AnyCancellable>()
+}
+
+struct TeamView: View {
+    let name: String
+    
+    var body: some View {
+        VStack {
+            Image(name.replacingOccurrences(of: " ", with: "").lowercased())
+                .resizable()
+                .scaledToFit()
+                .frame(width: 60, height: 60)
+            
+            Text(name)
+                .font(.caption)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+        }
+        .frame(width: 100)
+    }
+}
+
+struct VsView: View {
+    var body: some View {
+        Text("vs")
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .padding(8)
+            .background(Circle().stroke(Color.secondary))
+    }
+}
+
+struct ScoreView: View {
+    let score: Score?
+    
+    var body: some View {
+        VStack {
+            Text("Current Score")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            HStack(spacing: 4) {
+                Text("\(score?.r ?? 0)/\(score?.w ?? 0)")
+                    .font(.title2)
+                Text("(\(score?.o ?? 0.0) ov)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+}
+
+struct MatchStatusIndicator: View {
+    let status: String
+    
+    var body: some View {
+        Text(status)
+            .font(.caption2)
+            .padding(6)
+            .background(statusBackground)
+            .foregroundColor(.white)
+            .cornerRadius(4)
+    }
+    
+    private var statusBackground: Color {
+        switch status {
+        case "Match started": return .green
+        case "Match ended": return .red
+        default: return .orange
+        }
+    }
+}
+
+// Existing code ...
 
 struct SeriesCardView: View {
     let title: String
@@ -101,7 +416,7 @@ struct SeriesCardView: View {
     }
 }
 
-
+// Existing code ...
 
 struct StatBadge: View {
     let title: String
@@ -180,118 +495,119 @@ struct CommentaryView: View {
     }
 }
 
+// Existing code ...
 
 struct MatchInfoView: View {
     let match: Match
-
+    
     private let cardBackground = LinearGradient(
-            gradient: Gradient(colors: [Color(.systemIndigo), Color(.systemTeal)]),
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+        gradient: Gradient(colors: [Color(.systemIndigo), Color(.systemTeal)]),
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
     var body: some View {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Header Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(match.name)
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                        
-                        HStack {
-                            Text(formattedDate(match.dateTimeGMT))
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            Text(match.matchType.uppercased())
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .padding(4)
-                                .background(Capsule().fill(Color.indigo.opacity(0.2)))
-                                .foregroundColor(.indigo)
-                        }
-                    }
-                    .padding(.horizontal)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Header Section
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(match.name)
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
                     
-                    // Score Card
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(alignment: .top) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(match.teams[0])
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                
-                                Text("\(match.score?[0].r ?? 0)/\(match.score?[0].w ?? 0)")
-                                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                                
-                                Text("\(String(format: "%.1f", match.score?[0].o ?? 0)) Overs")
-                                    .font(.subheadline)
-                                    .foregroundColor(.white.opacity(0.9))
-                            }
-                            
-                            Spacer()
-                            
-                            VStack(alignment: .trailing, spacing: 8) {
-                                StatBadge(title: "CRR", value: "8.84")
-                                StatBadge(title: "REQ", value: "37.0")
-                            }
-                        }
-                        
-                        ProgressView(value: 0.65)
-                            .progressViewStyle(LinearProgressViewStyle(tint: .white))
-                            .padding(.vertical, 4)
-                        
-                        Text(match.status)
-                            .font(.caption)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding()
-                    .background(cardBackground)
-                    .cornerRadius(16)
-                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-                    .padding(.horizontal)
-                    
-                    // Match Details
-                    VStack(alignment: .leading, spacing: 16) {
-                        DetailRow(icon: "mappin.circle", text: match.venue)
-                        DetailRow(icon: "calendar", text: formattedDate(match.dateTimeGMT))
-                    }
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-                    
-                    // Quick Stats
                     HStack {
-                        StatBlock(title: "Partnership", value: "15(14)")
-                        Divider()
-                        StatBlock(title: "Last 5 Overs", value: "45/1")
-                        Divider()
-                        StatBlock(title: "Target", value: "\(match.score?[1].r ?? 0 + 1)")
+                        Text(formattedDate(match.dateTimeGMT))
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Text(match.matchType.uppercased())
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .padding(4)
+                            .background(Capsule().fill(Color.indigo.opacity(0.2)))
+                            .foregroundColor(.indigo)
                     }
-                    .padding()
-                    .background(Color(.tertiarySystemBackground))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-                    
-                    // Players Section
-                    BattersTable(score: match.score?[0] ?? Score(r: 0, w: 0, o: 0, inning: ""))
-                        .padding(.horizontal)
-                    
-                    BowlerTable(score: match.score?[1] ?? Score(r: 0, w: 0, o: 0, inning: ""))
-                        .padding(.horizontal)
                 }
-                .padding(.vertical)
+                .padding(.horizontal)
+                
+                // Score Card
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(match.teams[0])
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            Text("\(match.score?[0].r ?? 0)/\(match.score?[0].w ?? 0)")
+                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            
+                            Text("\(String(format: "%.1f", match.score?[0].o ?? 0)) Overs")
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.9))
+                        }
+                        
+                        Spacer()
+                        
+                        VStack(alignment: .trailing, spacing: 8) {
+                            StatBadge(title: "CRR", value: "8.84")
+                            StatBadge(title: "REQ", value: "37.0")
+                        }
+                    }
+                    
+                    ProgressView(value: 0.65)
+                        .progressViewStyle(LinearProgressViewStyle(tint: .white))
+                        .padding(.vertical, 4)
+                    
+                    Text(match.status)
+                        .font(.caption)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding()
+                .background(cardBackground)
+                .cornerRadius(16)
+                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                .padding(.horizontal)
+                
+                // Match Details
+                VStack(alignment: .leading, spacing: 16) {
+                    DetailRow(icon: "mappin.circle", text: match.venue)
+                    DetailRow(icon: "calendar", text: formattedDate(match.dateTimeGMT))
+                }
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
+                .padding(.horizontal)
+                
+                // Quick Stats
+                HStack {
+                    StatBlock(title: "Partnership", value: "15(14)")
+                    Divider()
+                    StatBlock(title: "Last 5 Overs", value: "45/1")
+                    Divider()
+                    StatBlock(title: "Target", value: "\(match.score?[1].r ?? 0 + 1)")
+                }
+                .padding()
+                .background(Color(.tertiarySystemBackground))
+                .cornerRadius(12)
+                .padding(.horizontal)
+                
+                // Players Section
+                BattersTable(score: match.score?[0] ?? Score(r: 0, w: 0, o: 0, inning: ""))
+                    .padding(.horizontal)
+                
+                BowlerTable(score: match.score?[1] ?? Score(r: 0, w: 0, o: 0, inning: ""))
+                    .padding(.horizontal)
             }
-            .navigationTitle("Match Details")
-            .navigationBarTitleDisplayMode(.inline)
+            .padding(.vertical)
         }
-
+        .navigationTitle("Match Details")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
     
     private func formattedDate(_ dateString: String) -> String {
         let dateFormatter = DateFormatter()
@@ -305,6 +621,7 @@ struct MatchInfoView: View {
         return dateString
     }
 }
+
 struct LiveView: View {
     let match: Match
     

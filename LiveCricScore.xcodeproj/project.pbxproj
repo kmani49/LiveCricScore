@@ -10,6 +10,7 @@
 		3C10CD442CE091E400A1B5CC /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C10CD432CE091E400A1B5CC /* WidgetKit.framework */; };
 		3C10CD462CE091E400A1B5CC /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C10CD452CE091E400A1B5CC /* SwiftUI.framework */; };
 		3C10CD552CE091E600A1B5CC /* CricketScoresWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3C10CD412CE091E400A1B5CC /* CricketScoresWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		3C3AE5B32D90B0E40002BCE5 /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 3C3AE5B22D90B0E40002BCE5 /* Appwrite */; };
 		3C4739362D848C6900E69C5E /* CricketActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C47392A2D848C6900E69C5E /* CricketActivityAttributes.swift */; };
 		3C4739572D86BA1600E69C5E /* SharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C4739562D86BA1600E69C5E /* SharedComponents.swift */; };
 		3C4739592D86BC6300E69C5E /* CricketActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C47392A2D848C6900E69C5E /* CricketActivityAttributes.swift */; };
@@ -107,6 +108,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3C3AE5B32D90B0E40002BCE5 /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -195,6 +197,7 @@
 			);
 			name = LiveCricScore;
 			packageProductDependencies = (
+				3C3AE5B22D90B0E40002BCE5 /* Appwrite */,
 			);
 			productName = LiveCricScore;
 			productReference = 3C6144B02CDE606100902A3E /* LiveCricScore.app */;
@@ -227,6 +230,9 @@
 			);
 			mainGroup = 3C6144A72CDE606100902A3E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3C3AE5B12D90B0E40002BCE5 /* XCRemoteSwiftPackageReference "sdk-for-apple" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3C6144B12CDE606100902A3E /* Products */;
 			projectDirPath = "";
@@ -583,6 +589,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		3C3AE5B12D90B0E40002BCE5 /* XCRemoteSwiftPackageReference "sdk-for-apple" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/appwrite/sdk-for-apple";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3C3AE5B22D90B0E40002BCE5 /* Appwrite */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3C3AE5B12D90B0E40002BCE5 /* XCRemoteSwiftPackageReference "sdk-for-apple" */;
+			productName = Appwrite;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 3C6144A82CDE606100902A3E /* Project object */;
 }
